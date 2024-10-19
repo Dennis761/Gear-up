@@ -26,10 +26,31 @@ const clientSchema = new mongoose.Schema({
             message: props => `${props.value} is not a valid email!`
         },
     },
+    rating: {
+        allStars: {
+            type: Number,
+            default: 0
+        },
+        ratersList: [{
+            raterId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User',
+                required: true
+            },
+            stars: {
+                type: Number,
+                required: true
+            }
+        }],
+        averageStars: {
+            type: Number,
+            default: 0
+        }
+    },
     sportCategory: {
-        type: String,
+        type: [String],
+        enum: ['Soccer', 'Basketball', 'Tennis', 'Swimming', 'Running', 'Cycling', 'Volleyball', 'Baseball', 'Rugby', 'Golf', 'Snowboarding', 'Skiing', 'Rock Climbing', 'Kayaking', 'Boxing', 'Wrestling', 'Archery', 'Surfing', 'Skateboarding', 'Badminton'],
         required: true,
-        enum: ['Cycling', 'Snowboarding', 'Kayaking', 'Chess', 'Rock Climbing', 'Fishing'], // категории спорта как перечисление
     },
     creator: {
         type: mongoose.Schema.Types.ObjectId,

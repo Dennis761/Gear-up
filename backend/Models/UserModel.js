@@ -23,8 +23,22 @@ const UserSchema = new mongoose.Schema({
         required: true
     },
     stars: {
-        type: Number,
-        default: 0
+        equipmentStars: {
+            type: Number,
+            default: 0
+        },
+        guideStars: {
+            type: Number,
+            default: 0
+        },
+        clientStars: {
+            type: Number,
+            default: 0
+        },
+        averageUserRating: {
+            type: Number,
+            default: 0
+        }
     },
     myBlogs: [{
         type: mongoose.Schema.Types.ObjectId,
@@ -55,9 +69,10 @@ const UserSchema = new mongoose.Schema({
                     type: String,
                     required: true
                 },
-                approvedState: {
-                    type: Boolean,
-                    default: false
+                status: { 
+                    type: String, 
+                    enum: ['pending', 'approved', 'rented', 'finished'], 
+                    default: 'pending' 
                 },
                 startDate: {
                     type: Date,
@@ -78,6 +93,15 @@ const UserSchema = new mongoose.Schema({
                 message: {
                     type: String,
                     required: true
+                },
+                status: { 
+                    type: String, 
+                    enum: ['pending', 'approved', 'rented', 'finished'], 
+                    default: 'pending' 
+                },
+                startDate: {
+                    type: Date,
+                    default: 0
                 }
             }],
         }],
@@ -94,67 +118,93 @@ const UserSchema = new mongoose.Schema({
                 message: {
                     type: String,
                     required: true
+                },
+                status: { 
+                    type: String, 
+                    enum: ['pending', 'approved', 'rented', 'finished'], 
+                    default: 'pending' 
+                },
+                startDate: {
+                    type: Date,
+                    default: 0
                 }
             }],
         }]
     },
-    equipmentListings: [{
-        equipment: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Equipment',
-        },
-        user: [{
-            rentedBy: {
+    ratedRents:{
+        ratedEquipment: [{
+            raterId: {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: 'User',
+                required: true
             },
-            startDate: {
-                type: Date,
-            },
-            endDate: {
-                type: Date,
-            }
-        }]
-    }],
-    clientListings: [{
-        client: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Client',
-        },
-        user: [{
-            rentedBy: {
+            ratedEquipmentId: {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: 'User',
+                ref: 'Equipment',
+                required: true
             },
-            startDate: {
-                type: Date,
-            },
-            endDate: {
-                type: Date,
+            stars: {
+                type: Number,
+                max: 5,
+                default: 0
             }
         }],
-    }],
-    guideListings: [{
-        guide: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Guide',
-        },
-        user: [{
-            rentedBy: {
+        ratedGuide: [{
+            raterId: {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: 'User',
+                required: true
             },
-            startDate: {
-                type: Date,
+            ratedGuideId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Guide',
+                required: true
             },
-            endDate: {
-                type: Date,
+            stars: {
+                type: Number,
+                max: 5,
+                default: 0
+            }
+        }],
+        ratedClient: [{
+            raterId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User',
+                required: true
+            },
+            ratedClientId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Client',
+                required: true
+            },
+            stars: {
+                type: Number,
+                max: 5,
+                default: 0
             }
         }]
+    },
+    unreadRentalRatingRequests: [{
+        raterId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+        },
+        ratedId: {
+            type: mongoose.Schema.Types.ObjectId,
+            refPath: 'ratedModel',
+            required: true
+        },
+        ratedModel: {
+            type: String,
+            enum: ['Equipment', 'Guide', 'Client'],
+            required: true
+        }
     }],
     rentalHistory: [{
         rentItemName: {
-            type: mongoose.Schema.Types.ObjectId,
+            // type: mongoose.Schema.Types.ObjectId,
+            type: String,
             refPath: 'type',
             required: true
         },
@@ -195,6 +245,8 @@ const UserSchema = new mongoose.Schema({
 
 export default mongoose.model('User', UserSchema);
 
+
+
 // import mongoose from 'mongoose';
 
 // // Модель пользователя
@@ -220,8 +272,22 @@ export default mongoose.model('User', UserSchema);
 //         required: true
 //     },
 //     stars: {
-//         type: Number,
-//         default: 0
+//         equipmentStars: {
+//             type: Number,
+//             default: 0
+//         },
+//         guideStars: {
+//             type: Number,
+//             default: 0
+//         },
+//         clientStars: {
+//             type: Number,
+//             default: 0
+//         },
+//         averageUserRating: {
+//             type: Number,
+//             default: 0
+//         }
 //     },
 //     myBlogs: [{
 //         type: mongoose.Schema.Types.ObjectId,
@@ -237,54 +303,145 @@ export default mongoose.model('User', UserSchema);
 //         ref: 'Blog',
 //         default: []
 //     }],
-//     myRendedEquipment: [{
+//     applicantsListings: {
+//         equipment: [{
+//             equipment: {
+//                 type: mongoose.Schema.Types.ObjectId,
+//                 ref: 'Equipment'
+//             },
+//             applicants: [{
+//                 applicant: {
+//                     type: mongoose.Schema.Types.ObjectId,
+//                     ref: 'User'
+//                 },
+//                 message: {
+//                     type: String,
+//                     required: true
+//                 },
+//                 approvedState: {
+//                     type: Boolean,
+//                     default: false
+//                 },
+//                 startDate: {
+//                     type: Date,
+//                     default: 0
+//                 }
+//             }],
+//         }],
+//         guide: [{
+//             guide: {
+//                 type: mongoose.Schema.Types.ObjectId,
+//                 ref: 'Guide'
+//             },
+//             applicants: [{
+//                 applicant: {
+//                     type: mongoose.Schema.Types.ObjectId,
+//                     ref: 'User'
+//                 },
+//                 message: {
+//                     type: String,
+//                     required: true
+//                 }
+//             }],
+//         }],
+//         client: [{
+//             client: {
+//                 type: mongoose.Schema.Types.ObjectId,
+//                 ref: 'Client'
+//             },
+//             applicants: [{
+//                 applicant: {
+//                     type: mongoose.Schema.Types.ObjectId,
+//                     ref: 'User'
+//                 },
+//                 message: {
+//                     type: String,
+//                     required: true
+//                 }
+//             }],
+//         }]
+//     },
+//     equipmentListings: [{
 //         equipment: {
 //             type: mongoose.Schema.Types.ObjectId,
 //             ref: 'Equipment',
 //         },
-//         rentedBy: {
-//             type: mongoose.Schema.Types.ObjectId,
-//             ref: 'User',
-//         }
+//         user: [{
+//             rentedBy: {
+//                 type: mongoose.Schema.Types.ObjectId,
+//                 ref: 'User',
+//             },
+//             startDate: {
+//                 type: Date,
+//             },
+//             endDate: {
+//                 type: Date,
+//             }
+//         }]
 //     }],
-//     equipmentListings: [{ 
-//         type: mongoose.Schema.Types.ObjectId, 
-//         ref: 'Equipment' 
-//     }],
-//     myRendedClient: [{
+//     clientListings: [{
 //         client: {
 //             type: mongoose.Schema.Types.ObjectId,
 //             ref: 'Client',
 //         },
-//         applicants: [{
-//             type: mongoose.Schema.Types.ObjectId,
-//             ref: 'User',
-//         }]
+//         user: [{
+//             rentedBy: {
+//                 type: mongoose.Schema.Types.ObjectId,
+//                 ref: 'User',
+//             },
+//             startDate: {
+//                 type: Date,
+//             },
+//             endDate: {
+//                 type: Date,
+//             }
+//         }],
 //     }],
-//     clientListings: [{ 
-//         type: mongoose.Schema.Types.ObjectId, 
-//         ref: 'Client' 
-//     }],
-//     myRendedGuide: [{
+//     guideListings: [{
 //         guide: {
 //             type: mongoose.Schema.Types.ObjectId,
 //             ref: 'Guide',
 //         },
-//         selectedBy: [{
-//             type: mongoose.Schema.Types.ObjectId,
-//             ref: 'User',
-//             required: true,
+//         user: [{
+//             rentedBy: {
+//                 type: mongoose.Schema.Types.ObjectId,
+//                 ref: 'User',
+//             },
+//             startDate: {
+//                 type: Date,
+//             },
+//             endDate: {
+//                 type: Date,
+//             }
 //         }]
 //     }],
-//     guideListings: [{ 
-//         type: mongoose.Schema.Types.ObjectId, 
-//         ref: 'Guide' 
+//     unreadRentalRatingRequests: [{
+//         raterId: {
+//             type: mongoose.Schema.Types.ObjectId,
+//             ref: 'User',
+//             required: true
+//         },
+//         ratedId: {
+//             type: mongoose.Schema.Types.ObjectId,
+//             refPath: 'ratedModel',
+//             required: true
+//         },
+//         ratedModel: {
+//             type: String,
+//             enum: ['Equipment', 'Guide', 'Client'],
+//             required: true
+//         }
 //     }],
 //     rentalHistory: [{
-//         equipment: {
-//             type: mongoose.Schema.Types.ObjectId, // Исправлено с Array на ObjectId
-//             ref: 'Equipment',
+//         rentItemName: {
+//             type: mongoose.Schema.Types.ObjectId,
+//             refPath: 'type',
 //             required: true
+//         },
+//         type: {
+//             type: String,
+//             required: true,
+//             enum: ['equipment', 'client', 'guide'], // регионы как перечисление
 //         },
 //         rentedBy: {
 //             type: mongoose.Schema.Types.ObjectId, // Исправлено с Array на ObjectId
@@ -298,6 +455,10 @@ export default mongoose.model('User', UserSchema);
 //         endDate: {
 //             type: Date,
 //             required: true
+//         },
+//         profit: {
+//             type: Number,
+//             default: 0
 //         }
 //     }],
 //     passwordHash: {

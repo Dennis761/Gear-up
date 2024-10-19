@@ -16,6 +16,37 @@ const guideSchema = new mongoose.Schema({
         required: true,
         min: 0,
     },
+    price: {
+        type: Number,
+        required: true,
+        min: 0,
+    },
+    rating: {
+        allStars: {
+            type: Number,
+            default: 0
+        },
+        ratersList: [{
+            raterId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User',
+                required: true
+            },
+            stars: {
+                type: Number,
+                required: true
+            }
+        }],
+        averageStars: {
+            type: Number,
+            default: 0
+        }
+    },
+    sportCategory: {
+        type: [String],
+        enum: ['Soccer', 'Basketball', 'Tennis', 'Swimming', 'Running', 'Cycling', 'Volleyball', 'Baseball', 'Rugby', 'Golf', 'Snowboarding', 'Skiing', 'Rock Climbing', 'Kayaking', 'Boxing', 'Wrestling', 'Archery', 'Surfing', 'Skateboarding', 'Badminton'],
+        required: true,
+    },
     creator: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

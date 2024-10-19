@@ -1,33 +1,42 @@
-import EquipmentModel from '../../Models/EquipmentModel.js'
-import UserModel from '../../Models/UserModel.js'
-import mongoose from 'mongoose'
+import mongoose from 'mongoose';
+import EquipmentModel from '../../Models/EquipmentModel.js';
+import UserModel from '../../Models/UserModel.js';
 import moment from 'moment-timezone';
 
-// Отправить заявку на аренду
 export const sendRequestForRent = async (req, res) => {
     try {
         const { equipmentId, message } = req.body;
         const userId = req.userId;
-        console.log('cost', equipmentId, message)
+        console.log('1:', equipmentId)
+        console.log(message)
+        console.log(userId)
+        // Проверка на наличие всех необходимых полей
         if (!equipmentId || !message || !userId) {
             return res.status(400).json({
                 error: 'Missing required fields: equipmentId, message, or userId'
             });
         }
-
+        console.log(mongoose.Types.ObjectId.isValid(equipmentId))
+        // Проверка валидности идентификатора оборудования
         if (!mongoose.Types.ObjectId.isValid(equipmentId)) {
             return res.status(400).json({
-                error: 'Invalid equipment ID1'
+                error: 'Invalid equipment ID'
             });
         }
 
-        const equipment = await EquipmentModel.findById(equipmentId);
+        // Преобразуем userId и equipmentId к ObjectId
+        const userObjectId = new mongoose.Types.ObjectId(userId);
+        const equipmentObjectId = new mongoose.Types.ObjectId(equipmentId);
+
+        // Поиск оборудования по идентификатору
+        const equipment = await EquipmentModel.findById(equipmentObjectId);
         if (!equipment) {
             return res.status(404).json({
                 error: 'Equipment not found'
             });
         }
 
+        // Поиск владельца оборудования
         const owner = await UserModel.findById(equipment.creator);
         if (!owner) {
             return res.status(404).json({
@@ -37,15 +46,15 @@ export const sendRequestForRent = async (req, res) => {
 
         // Ищем запись о снаряжении у владельца
         let equipmentListing = owner.applicantsListings.equipment.find(listing =>
-            listing.equipment.equals(equipmentId)
+            listing.equipment.equals(equipmentObjectId)
         );
 
         if (!equipmentListing) {
             // Если записи о снаряжении нет, создаём новую запись с заявкой
             equipmentListing = {
-                equipment: equipmentId,
+                equipment: equipmentObjectId,
                 applicants: [{
-                    applicant: userId,
+                    applicant: userObjectId,
                     message
                 }]
             };
@@ -53,9 +62,10 @@ export const sendRequestForRent = async (req, res) => {
         } else {
             // Если запись о снаряжении найдена, проверяем, есть ли заявка от пользователя
             const existingApplicant = equipmentListing.applicants.find(app =>
-                app.applicant.equals(userId)
+                app.applicant.equals(userObjectId)
             );
 
+            console.log(existingApplicant)
             if (existingApplicant) {
                 // Если заявка от пользователя уже существует, возвращаем ошибку
                 return res.status(400).json({
@@ -65,7 +75,7 @@ export const sendRequestForRent = async (req, res) => {
 
             // Добавляем нового заявителя, если заявки от этого пользователя нет
             equipmentListing.applicants.push({
-                applicant: userId,
+                applicant: userObjectId,
                 message
             });
         }
@@ -85,14 +95,13 @@ export const sendRequestForRent = async (req, res) => {
     }
 };
 
+
 // Одобрить заявку на аренду
 export const approveToRent = async (req, res) => {
     try {
         const { equipmentId, applicantId } = req.body;
         const userId = req.userId; 
-        console.log('applicantId', applicantId)
-        console.log('equipmentId', equipmentId)
-        console.log('userId', userId)
+
         if (!userId || !equipmentId || !applicantId) {
             return res.status(400).json({
                 error: 'Missing required fields: userId, equipmentId, or applicantId'
@@ -139,8 +148,8 @@ export const approveToRent = async (req, res) => {
             });
         }
 
-        // Устанавливаем approvedState в true
-        applicant.approvedState = true;
+        // Устанавливаем статус заявки на 'approved'
+        applicant.status = 'approved';
 
         // Сохраняем изменения в базе данных
         await owner.save();
@@ -198,6 +207,7 @@ export const dissaproveToRent = async (req, res) => {
             });
         }
 
+        // Удаляем заявку из списка заявок
         equipmentListing.applicants = equipmentListing.applicants.filter(app =>
             !app.applicant.equals(applicantId)
         );
@@ -413,7 +423,23 @@ export const getRentalRequests = async (req, res) => {
             })
             .populate({
                 path: 'applicantsListings.equipment.applicants.applicant', // Подгружаем данные о заявителях
-                select: '_id name approvedState', // Получаем только нужные поля заявителей
+                select: '_id name', // Получаем только нужные поля заявителей
+            })
+            .populate({
+                path: 'applicantsListings.guide.guide', // Подгружаем данные о гидах
+                select: '_id name',
+            })
+            .populate({
+                path: 'applicantsListings.guide.applicants.applicant', // Подгружаем данные о заявителях для гида
+                select: '_id name',
+            })
+            .populate({
+                path: 'applicantsListings.client.client', // Подгружаем данные о клиентах
+                select: '_id name',
+            })
+            .populate({
+                path: 'applicantsListings.client.applicants.applicant', // Подгружаем данные о заявителях для клиента
+                select: '_id name',
             });
 
         if (!user) {
@@ -442,9 +468,9 @@ export const getRentalRequests = async (req, res) => {
                     user: {
                         id: applicant._id,
                         name: applicant.name,
-                        approvedState: applicantObj.approvedState || applicant.approvedState,
                     },
                     message: applicantObj.message,
+                    status: applicantObj.status || 'pending', // Используем статус вместо approvedState
                 };
             });
 
@@ -453,9 +479,8 @@ export const getRentalRequests = async (req, res) => {
                 equipment: {
                     equipmentName: equipment.name || 'Неизвестное оборудование',
                     equipmentId: equipment._id,
-                    endDate: equipment.endDate || 0
                 },
-                applicants: applicants.filter(Boolean),
+                applicants: applicants.filter(Boolean), // Убираем возможные null значения
             };
         });
 
@@ -469,6 +494,8 @@ export const getRentalRequests = async (req, res) => {
         return res.status(500).json({ message: 'Ошибка сервера' });
     }
 };
+
+
 
 
 // export const startEquipmentRent = async (req, res) => {
