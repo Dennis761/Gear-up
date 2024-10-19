@@ -20,7 +20,7 @@
 - **MongoDB**: A NoSQL database used for storing user data, rental listings, and transactions in a flexible, document-oriented structure.
 - **Redis**: Used for caching to enhance performance and store temporary data efficiently.
 
-- ![GearUp Home](![5226855030798283652](https://github.com/user-attachments/assets/51f4b29b-2d78-40f1-97f0-07548e4beb92))
+- ![GearUp Home]((https://github.com/user-attachments/assets/51f4b29b-2d78-40f1-97f0-07548e4beb92)
 
 - ![GearUp Description](![5226855030798283653](https://github.com/user-attachments/assets/997a68df-2a4e-4bbc-b8fb-426bbef211bd))
 
